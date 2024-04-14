@@ -17,7 +17,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 
 
-
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = os.urandom(32)
@@ -256,7 +255,6 @@ def contact():
         return render_template("contact.html", msg_sent=True)
     return render_template("contact.html", msg_sent=False)
 
-# # pqjc dsjw ldet nmpa       #monkeydluffy7038@gmail.com
 
 if __name__ == "__main__":
     app.run(debug=False)
