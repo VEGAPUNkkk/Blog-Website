@@ -1,6 +1,6 @@
-from ast import In
 from datetime import date
-import re
+import os
+import smtplib
 from tokenize import Triple
 from flask import Flask, abort, render_template, redirect, request, url_for, flash
 from flask_bootstrap import Bootstrap5
@@ -17,31 +17,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 
 
-'''
-Make sure the required packages are installed: 
-Open the Terminal in PyCharm (bottom left). 
-
-On Windows type:
-python -m pip install -r requirements.txt
-
-On MacOS type:
-pip3 install -r requirements.txt
-
-This will install the packages from the requirements.txt for this project.
-'''
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+
+app.config['SECRET_KEY'] = os.urandom(32)
 ckeditor = CKEditor(app)
 Bootstrap5(app)
-
-# TODO: Configure Flask-Login
 
 
 # CREATE DATABASE
 class Base(DeclarativeBase):
     pass
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("SQLALCHEMY_DATABASE_URI", "sqlite:///posts.db")
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
@@ -59,7 +46,7 @@ gravatar = Gravatar(app,
 
 
 
-# TODO: Create a User table for all your registered users. 
+# Create a User table for all your registered users. 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
     id : Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
@@ -117,7 +104,7 @@ def admin_only(func):
     wrapper.__name__ = func.__name__
     return wrapper
 
-# TODO: Use Werkzeug to hash the user's password when creating a new user.
+# Use Werkzeug to hash the user's password when creating a new user.
 @app.route('/register', methods=["GET", "POST"])
 def register():
     form = RegisterForm()
@@ -139,7 +126,7 @@ def register():
     return render_template("register.html", form=form)
 
 
-# TODO: Retrieve a user from the database based on their email. 
+# Retrieve a user from the database based on their email. 
 @app.route('/login', methods=["GET", "POST"])
 def login():
     form = LoginForm()
@@ -171,7 +158,7 @@ def get_all_posts():
     return render_template("index.html", all_posts=posts)
 
 
-# TODO: Allow logged-in users to comment on posts
+# Allow logged-in users to comment on posts
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
     form = CommentForm()
@@ -192,7 +179,7 @@ def show_post(post_id):
     return render_template("post.html", post=requested_post, form=form, gravatar=gravatar)
 
 
-# TODO: Use a decorator so only an admin user can create a new post
+# Use a decorator so only an admin user can create a new post
 @app.route("/new-post", methods=["GET", "POST"])
 @admin_only
 def add_new_post():
@@ -212,7 +199,7 @@ def add_new_post():
     return render_template("make-post.html", form=form)
 
 
-# TODO: Use a decorator so only an admin user can edit a post
+# Use a decorator so only an admin user can edit a post
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
 @admin_only
 def edit_post(post_id):
@@ -235,7 +222,7 @@ def edit_post(post_id):
     return render_template("make-post.html", form=edit_form, is_edit=True)
 
 
-# TODO: Use a decorator so only an admin user can delete a post
+# Use a decorator so only an admin user can delete a post
 @app.route("/delete/<int:post_id>")
 @admin_only
 def delete_post(post_id):
@@ -250,10 +237,26 @@ def about():
     return render_template("about.html")
 
 
-@app.route("/contact")
+@app.route("/contact", methods=["GET", "POST"])
 def contact():
-    return render_template("contact.html")
+    if request.method == "POST":
+        email = request.form.get("email")
+        name = request.form.get("name")
+        phone = request.form.get("phone")
+        message = request.form.get("message")
+        print(f"Subject:FLask Blog Contact Form\n\nName:{name}\nContact:{phone}\nMessage:{message}")
+        with smtplib.SMTP("smtp.gmail.com") as connection:
+            connection.starttls()
+            connection.login(user=os.environ.get("GMAIL"), password=os.environ.get("GMAIL_PASSWORD"))
+            connection.sendmail(
+                from_addr=email,
+                to_addrs=os.environ.get("GMAIL"),
+                msg=f"Subject:FLask Blog Contact Form\n\nName:{name}\nContact:{phone}\nMessage:{message}"
+            )
+        return render_template("contact.html", msg_sent=True)
+    return render_template("contact.html", msg_sent=False)
 
+# # pqjc dsjw ldet nmpa       #monkeydluffy7038@gmail.com
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5002)
+    app.run(debug=False)
